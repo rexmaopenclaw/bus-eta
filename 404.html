@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Redirecting...</title>
+  <script>
+    // Redirect to index.html with the full path as hash
+    var path = window.location.pathname.replace('/bus-eta/', '');
+    if (path && path !== '') {
+      window.location.href = '/bus-eta/#' + path;
+    } else {
+      window.location.href = '/bus-eta/';
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting to <a href="/bus-eta/">巴士到站</a>...</p>
+</body>
+</html>
