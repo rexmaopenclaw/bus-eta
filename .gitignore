@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+dist/ # excluded from main branch, gh-pages branch only
+server/
+*.log
+.cache/
+*.zip
+*.tar.gz

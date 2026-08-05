@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+.git/
+.gitignore
+*.log
+.cache/
+dist/
+server/
+*.zip
+*.tar.gz

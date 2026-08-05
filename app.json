@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "巴士到站",
+    "slug": "bus-eta",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "bus-eta",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.buseta.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "用於找出你附近的巴士站"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.buseta.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-asset",
+      "expo-font",
+      ["expo-build-properties", {
+        "android": {
+          "kotlinVersion": "1.9.0"
+        }
+      }]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "b4045d26-264b-4807-840b-1fa2f1213bae"
+      }
+    },
+    "owner": "rexma510",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b4045d26-264b-4807-840b-1fa2f1213bae"
+    }
+  }
+}
