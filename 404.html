@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <title>Redirecting...</title>
   <script>
-    // Redirect to index.html with the full path as hash
+    // SPA fallback for GitHub Pages: redirect to index.html with path as query param
     var path = window.location.pathname.replace('/bus-eta/', '');
-    if (path && path !== '') {
-      window.location.href = '/bus-eta/#' + path;
-    } else {
-      window.location.href = '/bus-eta/';
+    if (path && path !== '' && path !== 'index.html' && path !== '404.html') {
+      window.location.replace('/bus-eta/?p=' + path + window.location.hash);
     }
   </script>
 </head>
