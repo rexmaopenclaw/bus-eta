@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loginApi, registerApi, meApi } from '../api/auth';
+import { loginApi, registerApi, meApi, getCurrentApiBase } from '../api/auth';
 
 const AUTH_STORAGE_KEY = 'busapp_auth';
 
@@ -38,14 +38,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       if (raw) {
         const { token, user } = JSON.parse(raw);
-        // 驗證 token 是否有效
+        // 驗證 token 是否有效 — 只係 401 先清除，network error 保留 token
         try {
-          await meApi(token);
-          set({ token, user, loaded: true });
+          const res = await fetch(`${getCurrentApiBase()}/api/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            set({ token, user, loaded: true });
+          } else if (res.status === 401) {
+            // Token 過期，清除
+            await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+            set({ loaded: true });
+          } else {
+            // Server error (5xx)，但 token 可能仲有效 — 保留
+            set({ token, user, loaded: true });
+          }
         } catch {
-          // Token 過期，清除
-          await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
-          set({ loaded: true });
+          // Network error（server down / 連唔到）— 保留 token
+          set({ token, user, loaded: true });
         }
       } else {
         set({ loaded: true });

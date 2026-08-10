@@ -71,10 +71,14 @@ export default function RouteDetailScreen() {
   const isRefetching = comp === 'KMB' ? kmbRefetching : ctbRefetching;
 
   // 按 bound + service_type 過濾 + 按 seq 排序
+  // 如果 bound 冇傳（例如由附近車站路線 badge 入），自動用第一個 bound
   const items = useMemo(() => {
     if (!allStops) return [];
+    const availableBounds = [...new Set(allStops.map((s: any) => s.bound))] as ('O' | 'I')[];
+    const effectiveBound = (b || availableBounds[0]) as 'O' | 'I';
+    if (!effectiveBound) return [];
     const filtered = allStops
-      .filter((s: any) => s.bound === b && String(s.service_type) === serviceType)
+      .filter((s: any) => s.bound === effectiveBound && String(s.service_type) === serviceType)
       .sort((a: any, b: any) => a.seq - b.seq);
     return filtered.map((s: any, idx: number) => ({
       ...s,
@@ -83,10 +87,18 @@ export default function RouteDetailScreen() {
     }));
   }, [allStops, b, serviceType]);
 
+  // 有效 bound（自動偵測兜底）
+  const effectiveBound = useMemo<'O' | 'I'>(() => {
+    if (b) return b as 'O' | 'I';
+    if (!allStops) return 'O';
+    const bounds = [...new Set(allStops.map((s: any) => s.bound))] as ('O' | 'I')[];
+    return bounds[0] || 'O';
+  }, [allStops, b]);
+
   const handleStopPress = (stopId: string) => {
     router.push({
       pathname: '/stop/[stopId]',
-      params: { stopId, route: route, bound: b, st: serviceType, company: comp },
+      params: { stopId, route: route, bound: effectiveBound, st: serviceType, company: comp },
     });
   };
 
@@ -126,13 +138,13 @@ export default function RouteDetailScreen() {
           destTc={
             comp === 'CTB'
               ? `${origTc ?? ''} → ${destTc ?? ''}`
-              : b === 'O'
+              : effectiveBound === 'O'
                 ? `${origTc ?? ''} → ${destTc ?? ''}`
                 : `${destTc ?? ''} → ${origTc ?? ''}`
           }
         />
         <Text style={[styles.boundText, { color: theme.colors.textSecondary }]}>
-          {getBoundLabel(b, comp)}
+          {getBoundLabel(effectiveBound, comp)}
           {' · '}{items.length} 個站
           {' · '}{comp === 'CTB' ? '城巴' : '九巴'}
           {fare !== null ? ` · $${fare}` : ''}
@@ -154,7 +166,7 @@ export default function RouteDetailScreen() {
         ListHeaderComponent={
           <View style={styles.mapSection}>
             <Text style={[styles.routeMapLabel, { color: theme.colors.textSecondary }]}>路線圖</Text>
-            <BusMap stops={items} height={280} route={route} bound={b} company={comp} />
+            <BusMap stops={items} height={280} route={route} bound={effectiveBound} company={comp} />
           </View>
         }
         renderItem={({ item }) => (

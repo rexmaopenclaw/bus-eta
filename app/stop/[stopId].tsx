@@ -32,7 +32,7 @@ import { DEFAULT_GROUP } from '../../src/types';
 import type { KMBETA, RouteStopDetail, BusCompany } from '../../src/types';
 
 export default function StopETAScreen() {
-  const { stopId, route, bound, st, company: compParam } = useLocalSearchParams<{
+  const { stopId, route: routeParam, bound, st, company: compParam } = useLocalSearchParams<{
     stopId: string;
     route?: string;
     bound?: string;
@@ -42,50 +42,30 @@ export default function StopETAScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const b = (bound as 'O' | 'I') ?? 'O';
-  const serviceType = st ?? '1';
-  const company = (compParam as BusCompany) ?? 'KMB';
-  const hasRouteContext = !!route; // 有冇 route/bound/company 參數
+  // 當從 route picker 揀路線時，用 local state 暫存
+  const [localRouteCtx, setLocalRouteCtx] = useState<{
+    route: string;
+    bound: 'O' | 'I';
+    st: string;
+    company: BusCompany;
+  } | null>(null);
 
-  // If no route context, show route picker for the stop
-  if (!hasRouteContext) {
-    return <StopRoutePicker stopId={stopId!} />;
-  }
+  const route = routeParam || localRouteCtx?.route;
+  const b = (bound as 'O' | 'I') || localRouteCtx?.bound || 'O';
+  const serviceType = st || localRouteCtx?.st || '1';
+  const company = (compParam as BusCompany) || localRouteCtx?.company || 'KMB';
+  const hasRouteContext = !!route;
 
-  // === 路線車站資料 ===
-  const { data: kmbRouteStops } = useKMBRouteStops(company === 'KMB' ? route! : '');
-  const { data: ctbRouteStops } = useCTBRouteStops(company === 'CTB' ? route! : '');
+  // === 所有 hooks 必須喺任何 conditional return 之前 ===
+  const { data: kmbRouteStops } = useKMBRouteStops(hasRouteContext && company === 'KMB' ? route! : '');
+  const { data: ctbRouteStops } = useCTBRouteStops(hasRouteContext && company === 'CTB' ? route! : '');
   const routeStops = company === 'KMB' ? kmbRouteStops : ctbRouteStops;
 
-  // 按 bound + service_type 過濾 + 排序
-  const routeStopList = useMemo(() => {
-    if (!routeStops) return [];
-    return routeStops
-      .filter((s: RouteStopDetail) => s.bound === b && String(s.service_type) === serviceType)
-      .sort((a: RouteStopDetail, b: RouteStopDetail) => a.seq - b.seq);
-  }, [routeStops, b, serviceType]);
+  const { data: kmbEtas, isLoading: kmbLoading, error: kmbError, refetch: kmbRefetch, isRefetching: kmbRefetching } =
+    useStopETA(hasRouteContext && company === 'KMB' ? stopId! : '', route ?? '', serviceType, hasRouteContext && company === 'KMB');
 
-  // 搵出當前車站嘅 seq 同詳細資料
-  const currentStopInfo = useMemo(() => {
-    return routeStopList.find((s: RouteStopDetail) => s.stop === stopId) ?? null;
-  }, [routeStopList, stopId]);
-
-  // === ETA ===
-  const {
-    data: kmbEtas,
-    isLoading: kmbLoading,
-    error: kmbError,
-    refetch: kmbRefetch,
-    isRefetching: kmbRefetching,
-  } = useStopETA(company === 'KMB' ? stopId! : '', route!, serviceType, company === 'KMB');
-
-  const {
-    data: ctbEtas,
-    isLoading: ctbLoading,
-    error: ctbError,
-    refetch: ctbRefetch,
-    isRefetching: ctbRefetching,
-  } = useCTBStopETA(company === 'CTB' ? stopId! : '', route!, b, null, company === 'CTB');
+  const { data: ctbEtas, isLoading: ctbLoading, error: ctbError, refetch: ctbRefetch, isRefetching: ctbRefetching } =
+    useCTBStopETA(hasRouteContext && company === 'CTB' ? stopId! : '', route ?? '', b, null, hasRouteContext && company === 'CTB');
 
   const etas = company === 'KMB' ? kmbEtas : ctbEtas;
   const isLoading = company === 'KMB' ? kmbLoading : ctbLoading;
@@ -93,17 +73,25 @@ export default function StopETAScreen() {
   const refetch = company === 'KMB' ? kmbRefetch : ctbRefetch;
   const isRefetching = company === 'KMB' ? kmbRefetching : ctbRefetching;
 
-  // 收藏相關
   const favorites = useFavoritesStore();
 
-  // 從附近車站入嚟（冇 route context）時嘅 route picker 已經喺上面 return 咗
-  // 以下係正常有 route context 嘅顯示
+  const routeStopList = useMemo(() => {
+    if (!routeStops) return [];
+    return routeStops
+      .filter((s: RouteStopDetail) => s.bound === b && String(s.service_type) === serviceType)
+      .sort((a: RouteStopDetail, b: RouteStopDetail) => a.seq - b.seq);
+  }, [routeStops, b, serviceType]);
+
+  const currentStopInfo = useMemo(() => {
+    return routeStopList.find((s: RouteStopDetail) => s.stop === stopId) ?? null;
+  }, [routeStopList, stopId]);
+
   const favId = `${company}-${route}-${b}-${stopId}`;
   const isFav = favorites.isFavorite(favId);
 
-  // Group picker modal
   const [showGroupPicker, setShowGroupPicker] = useState(false);
   const [newGroupInput, setNewGroupInput] = useState('');
+  const [showStopPicker, setShowStopPicker] = useState(false);
 
   const doAddFavorite = useCallback((group: string) => {
     if (!currentStopInfo) return;
@@ -135,24 +123,19 @@ export default function StopETAScreen() {
     }
   }, [currentStopInfo, isFav, favId, favorites]);
 
-  // Modal 控制
-  const [showStopPicker, setShowStopPicker] = useState(false);
-
-  // 篩選出未來班次，最多 3 班
   const stopETAs: KMBETA[] = useMemo(() => {
     if (!etas) return [];
     return etas.slice(0, 3);
   }, [etas]);
 
-  // 如果冇 route context 就顯示 route picker
-  // （上面已經 return 咗，呢度係正常 ETA 頁）
+  // 冇 route context → 顯示路線揀選器
   if (!hasRouteContext) {
-    return null;
+    return <StopRoutePicker stopId={stopId!} onSelectRoute={(ctx) => setLocalRouteCtx(ctx)} />;
   }
 
+  // 有 route context → 顯示 ETA
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* 車站資訊 header */}
       <View
         style={[
           styles.header,
@@ -169,7 +152,6 @@ export default function StopETAScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 可點擊切換車站 */}
         <TouchableOpacity
           style={styles.stopNameRow}
           onPress={() => setShowStopPicker(true)}
@@ -191,7 +173,6 @@ export default function StopETAScreen() {
         </Text>
       </View>
 
-      {/* ETA 內容 */}
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -230,7 +211,7 @@ export default function StopETAScreen() {
         />
       )}
 
-      {/* 群組選擇 Modal（加入收藏時顯示） */}
+      {/* 群組選擇 Modal */}
       <Modal
         visible={showGroupPicker}
         transparent
@@ -247,7 +228,6 @@ export default function StopETAScreen() {
               {route} · {currentStopInfo?.name_tc}
             </Text>
 
-            {/* 現有群組 */}
             {favorites.getGroups().map((g) => (
               <TouchableOpacity
                 key={g}
@@ -258,7 +238,6 @@ export default function StopETAScreen() {
               </TouchableOpacity>
             ))}
 
-            {/* 新增群組 */}
             <View style={[styles.newGroupRow, { borderColor: theme.colors.border }]}>
               <TextInput
                 style={[styles.newGroupInput, { color: theme.colors.text }]}
@@ -314,15 +293,11 @@ export default function StopETAScreen() {
                     ]}
                     onPress={() => {
                       setShowStopPicker(false);
-                      router.replace({
-                        pathname: '/stop/[stopId]',
-                        params: {
-                          stopId: item.stop,
-                          route: route,
-                          bound: b,
-                          st: serviceType,
-                          company,
-                        },
+                      setLocalRouteCtx({
+                        route: route!,
+                        bound: b,
+                        st: serviceType,
+                        company,
                       });
                     }}
                     activeOpacity={0.6}>
@@ -359,7 +334,7 @@ export default function StopETAScreen() {
 // ============================================================
 // StopRoutePicker — 從附近車站入嚟時揀路線
 // ============================================================
-function StopRoutePicker({ stopId }: { stopId: string }) {
+function StopRoutePicker({ stopId, onSelectRoute }: { stopId: string; onSelectRoute?: (route: { route: string; bound: 'O' | 'I'; st: string; company: BusCompany }) => void }) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { data: stopsRecord } = useAllStops();
@@ -372,7 +347,6 @@ function StopRoutePicker({ stopId }: { stopId: string }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
         <View style={styles.stopNameContent}>
           <Text style={[styles.stopName, { color: theme.colors.text }]}>
@@ -408,9 +382,11 @@ function StopRoutePicker({ stopId }: { stopId: string }) {
           <TouchableOpacity
             style={[styles.routeCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
             onPress={() =>
-              router.push({
-                pathname: '/stop/[stopId]',
-                params: { stopId, route: routeNum, bound: 'O', st: '1', company: 'KMB' },
+              onSelectRoute?.({
+                route: routeNum,
+                bound: 'O',
+                st: '1',
+                company: 'KMB',
               })
             }
             activeOpacity={0.7}>
@@ -496,7 +472,6 @@ const styles = StyleSheet.create({
   modalItemText: { flex: 1 },
   modalItemName: { fontSize: 15, fontWeight: '500' },
   modalItemNameEn: { fontSize: 12, marginTop: 1 },
-  // Group picker modal styles
   groupModal: {
     marginHorizontal: 24,
     borderRadius: 16,

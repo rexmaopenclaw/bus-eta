@@ -3,7 +3,7 @@
 // ============================================================
 
 // 可從 localStorage 讀取 API URL，方便 tunnel URL 變咗時改
-const DEFAULT_API = 'https://humor-scripts-pas-contribution.trycloudflare.com';
+const DEFAULT_API = 'https://meanwhile-cats-futures-hammer.trycloudflare.com';
 
 function getApiBase(): string {
   if (typeof window !== 'undefined') {
