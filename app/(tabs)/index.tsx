@@ -141,7 +141,7 @@ function KMBBody({ fav }: { fav: FavoriteRoute }) {
       .slice(0, 3);
   }, [etas]);
   if (upcoming.length === 0) {
-    return <Text style={[styles.noEta, { color: '#6B7280' as any }]}>暫無到站數據</Text>;
+    return <Text style={[styles.noEta, { color: '#5a7a9a' as any }]}>暫無到站數據</Text>;
   }
   return (
     <View style={styles.etaList}>
@@ -162,7 +162,7 @@ function CTBBody({ fav }: { fav: FavoriteRoute }) {
       .slice(0, 3);
   }, [etas]);
   if (upcoming.length === 0) {
-    return <Text style={[styles.noEta, { color: '#6B7280' as any }]}>暫無到站數據</Text>;
+    return <Text style={[styles.noEta, { color: '#5a7a9a' as any }]}>暫無到站數據</Text>;
   }
   return (
     <View style={styles.etaList}>

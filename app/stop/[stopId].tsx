@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#2a3a50',
     alignSelf: 'center',
     marginBottom: 12,
   },

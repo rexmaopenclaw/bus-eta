@@ -1,6 +1,6 @@
-// ============================================================
-// 搜尋路線頁 — 輸入路線號碼 -> 選去程/回程 -> 睇車站
-// 支援 KMB (九巴) + CTB (城巴/NWFB)
+﻿// ============================================================
+// ??頝舐?????頛詨頝舐??Ⅳ -> ?詨蝔??? -> ??蝡?
+// ?舀 KMB (銋毀) + CTB (?毀/NWFB)
 // ============================================================
 
 import React, { useState, useMemo } from 'react';
@@ -24,7 +24,7 @@ import { useCTBAllRoutes } from '../../src/hooks/useCTBETA';
 import { RouteBadge } from '../../src/components/RouteBadge';
 import type { KMBRoute, BusCompany } from '../../src/types';
 
-/** 帶公司標籤嘅路線 */
+/** 撣嗅?豢?蝐文?頝舐? */
 interface RouteWithCompany extends KMBRoute {
   company: BusCompany;
 }
@@ -35,7 +35,7 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
 
-  // 清空展開狀態當 query 改變
+  // 皜征撅??? query ?寡?
   const handleQueryChange = (text: string) => {
     setQuery(text);
     setSelectedRoute(null);
@@ -47,7 +47,7 @@ export default function SearchScreen() {
 
   const isLoading = kmbLoading || ctbLoading;
 
-  // 合併路線，標記公司
+  // ?蔥頝舐?嚗?閮??
   const allRoutes = useMemo<RouteWithCompany[]>(() => {
     const result: RouteWithCompany[] = [];
     if (kmbRoutes) {
@@ -66,7 +66,7 @@ export default function SearchScreen() {
     return allRoutes.filter((r) => r.route.startsWith(q));
   }, [allRoutes, query]);
 
-  // 按路線號碼 + 公司分組 (避免 KMB 73X 同 CTB 73 撈亂)
+  // ?楝蝺?蝣?+ ?砍?? (?踹? KMB 73X ??CTB 73 ??)
   const routeGroups = useMemo(() => {
     const map = new Map<string, RouteWithCompany[]>();
     for (const r of filteredRoutes) {
@@ -88,7 +88,7 @@ export default function SearchScreen() {
 
   const handleBoundTap = (route: RouteWithCompany) => {
     Keyboard.dismiss();
-    // 根據公司決定導航目標
+    // ?寞??砍瘙箏?撠?格?
     if (route.company === 'KMB') {
       router.push({
         pathname: '/route/[route]',
@@ -126,7 +126,7 @@ export default function SearchScreen() {
         styles.container,
         { backgroundColor: theme.colors.background, paddingTop: insets.top },
       ]}>
-      {/* 搜尋欄 */}
+      {/* ??甈?*/}
       <View
         style={[
           styles.searchBar,
@@ -140,7 +140,7 @@ export default function SearchScreen() {
         />
         <TextInput
           style={[styles.searchInput, { color: theme.colors.text }]}
-          placeholder="輸入巴士路線號碼，例如 1A"
+          placeholder="頛詨撌游ㄚ頝舐??Ⅳ嚗?憒?1A"
           placeholderTextColor={theme.colors.textSecondary}
           value={query}
           onChangeText={handleQueryChange}
@@ -164,12 +164,12 @@ export default function SearchScreen() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingHint, { color: theme.colors.textSecondary }]}>
-            載入路線資料...
+            頛頝舐?鞈?...
           </Text>
         </View>
       )}
 
-      {/* 搜尋結果 */}
+      {/* ??蝯? */}
       <FlatList
         data={routeGroups}
         keyExtractor={(item) => `${item.route}_${item.company}`}
@@ -181,14 +181,14 @@ export default function SearchScreen() {
               styles.routeCard,
               { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
             ]}>
-            {/* 路線號碼 header */}
+            {/* 頝舐??Ⅳ header */}
             <TouchableOpacity
               style={styles.routeHeader}
               onPress={() => handleRouteTap(item.route)}>
               <RouteBadge
                 route={item.route}
                 company={item.company}
-                destTc={`${item.bounds[0]?.orig_tc ?? ''} ↔ ${item.bounds[0]?.dest_tc ?? ''}`}
+                destTc={`${item.bounds[0]?.orig_tc ?? ''} ??${item.bounds[0]?.dest_tc ?? ''}`}
               />
               <Ionicons
                 name={selectedRoute === item.route ? 'chevron-up' : 'chevron-down'}
@@ -197,7 +197,7 @@ export default function SearchScreen() {
               />
             </TouchableOpacity>
 
-            {/* 去程/回程選項（展開時） */}
+            {/* ?餌?/???賊?嚗???嚗?*/}
             {selectedRoute === item.route && (
               <View style={styles.boundContainer}>
                 {item.bounds.map((bound, idx) => (
@@ -216,15 +216,15 @@ export default function SearchScreen() {
                         {getBoundLabel(bound.bound as 'O' | 'I', bound.company)}
                       </Text>
                       <Text style={[styles.companyLabel, { color: theme.colors.textSecondary }]}>
-                        {bound.company === 'CTB' ? '城巴' : '九巴'}
+                        {bound.company === 'CTB' ? '?毀' : '銋毀'}
                       </Text>
                     </View>
                     <Text style={[styles.boundDest, { color: theme.colors.text }]}>
-                      {bound.orig_tc} → {bound.dest_tc}
+                      {bound.orig_tc} ??{bound.dest_tc}
                     </Text>
                     {bound.service_type !== '1' && (
                       <Text style={[styles.boundRemark, { color: theme.colors.warning }]}>
-                        特別班次
+                        ?孵?剜活
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -237,10 +237,10 @@ export default function SearchScreen() {
           !isLoading && query.trim().length >= 1 ? (
             <View style={styles.center}>
               <Text style={{ color: theme.colors.textSecondary }}>
-                找不到路線「{query.trim()}」
+                ?曆??啗楝蝺query.trim()}??
               </Text>
               <Text style={[styles.emptyHint, { color: theme.colors.textSecondary }]}>
-                試下輸入其他號碼，例如 1A、5B、A11
+                閰虫?頛詨?嗡??Ⅳ嚗?憒?1A??B?11
               </Text>
             </View>
           ) : null
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   boundLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1A7AF5',
+    color: '#60b0f4',
     marginBottom: 2,
   },
   companyLabel: {

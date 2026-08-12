@@ -100,7 +100,7 @@ export default function BusMap({ stops, height = 300, route, bound, company }: B
           } else {
             userMarker = L.circleMarker(e.latlng, {
               radius: 10,
-              fillColor: '#3B82F6',
+              fillColor: '#60b0f4',
               color: '#FFFFFF',
               weight: 3,
               opacity: 1,
@@ -156,7 +156,7 @@ export default function BusMap({ stops, height = 300, route, bound, company }: B
         // ── Route polyline (actual road shape) ──
         if (shapeCoords && shapeCoords.length > 1) {
           L.polyline(shapeCoords, {
-            color: '#2563EB',
+            color: '#60b0f4',
             weight: 5,
             opacity: 0.85,
           }).addTo(mapInstance);
@@ -167,7 +167,7 @@ export default function BusMap({ stops, height = 300, route, bound, company }: B
             parseFloat(s.long),
           ]);
           L.polyline(stopCoords, {
-            color: '#2563EB',
+            color: '#60b0f4',
             weight: 4,
             opacity: 0.8,
             dashArray: '8, 6', // Dashed to indicate it's approximate
@@ -177,21 +177,21 @@ export default function BusMap({ stops, height = 300, route, bound, company }: B
         // ── Stop markers ──
         if (validStops.length > 0) {
           const startIcon = L.divIcon({
-            html: '<div style="background:#22C55E;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+            html: '<div style="background:#4ecdc4;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
             iconSize: [16, 16],
             iconAnchor: [8, 8],
             className: '',
           });
 
           const endIcon = L.divIcon({
-            html: '<div style="background:#EF4444;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+            html: '<div style="background:#ff6b6b;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
             iconSize: [16, 16],
             iconAnchor: [8, 8],
             className: '',
           });
 
           const midIcon = L.divIcon({
-            html: '<div style="background:#3B82F6;width:10px;height:10px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>',
+            html: '<div style="background:#60b0f4;width:10px;height:10px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>',
             iconSize: [10, 10],
             iconAnchor: [5, 5],
             className: '',
@@ -210,7 +210,7 @@ export default function BusMap({ stops, height = 300, route, bound, company }: B
               `<div style="font-family:sans-serif;padding:2px">
                 <b>${stop.seq}. ${stop.name_tc}</b>
                 <br/>
-                <span style="color:#666;font-size:12px">${stop.name_en}</span>
+                <span style="color:#5a7a9a;font-size:12px">${stop.name_en}</span>
               </div>`,
             );
           });
@@ -281,11 +281,11 @@ const styles = StyleSheet.create({
   fallback: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#142238',
     borderRadius: 12,
   },
   fallbackText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#5a7a9a',
   },
 });

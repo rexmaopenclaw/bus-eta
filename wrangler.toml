@@ -1,0 +1,9 @@
+name = "bus-eta"
+main = "worker/index.js"
+compatibility_date = "2025-07-01"
+assets = { directory = "dist", binding = "ASSETS" }
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bus-eta-db"
+database_id = "c8de3409-b3b5-4366-92e6-3c6044b5758f"

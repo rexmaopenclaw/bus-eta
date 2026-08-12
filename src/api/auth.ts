@@ -3,7 +3,8 @@
 // ============================================================
 
 // 可從 localStorage 讀取 API URL，方便 tunnel URL 變咗時改
-const DEFAULT_API = 'https://meanwhile-cats-futures-hammer.trycloudflare.com';
+// Default = 同源（deploy 後就係 Cloudflare Workers 自己）
+const DEFAULT_API = '';
 
 function getApiBase(): string {
   if (typeof window !== 'undefined') {

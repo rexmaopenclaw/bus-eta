@@ -1,29 +1,30 @@
 // ============================================================
-// 主題設定 — 支援 Dark Mode
+// Bus ETA Theme — SeaCast (Tide App) 深藍風格
 // ============================================================
 
 import { useColorScheme } from 'react-native';
 
-// Color Palette
+// Color Palette — 跟 tide app (SeaCast) 深藍漸變風格
 const palette = {
   white: '#FFFFFF',
-  bgLight: '#F2F4F7',
-  bgDark: '#0F1419',
-  cardLight: '#FFFFFF',
-  cardDark: '#1A1E26',
-  primary: '#1A7AF5',
-  primaryLight: '#E8F0FE',
-  primaryDark: '#0D4F9E',
-  textPrimary: '#1A1A2E',
-  textSecondary: '#6B7280',
-  textOnDark: '#E4E6EB',
-  textOnDarkSecondary: '#9CA3AF',
-  border: '#E5E7EB',
-  borderDark: '#2D3340',
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  orange: '#F97316',
+  bgLight: '#0a1628',
+  bgDark: '#081020',
+  cardLight: '#0f1c30',
+  cardDark: '#1a2a40',
+  primary: '#60b0f4',
+  primaryLight: '#8ab8e0',
+  primaryDark: '#1a4a7a',
+  teal: '#4ecdc4',
+  textPrimary: '#e0e8f0',
+  textSecondary: '#5a7a9a',
+  textOnDark: '#e0e8f0',
+  textOnDarkSecondary: '#8ab8e0',
+  border: '#2a3a50',
+  borderDark: '#2a3a50',
+  success: '#4ecdc4',
+  warning: '#e0a060',
+  error: '#ff6b6b',
+  orange: '#e0a060',
 };
 
 export type AppTheme = typeof lightTheme;
