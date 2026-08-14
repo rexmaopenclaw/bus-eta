@@ -49,6 +49,10 @@
         "projectId": "b4045d26-264b-4807-840b-1fa2f1213bae"
       }
     },
+    "web": {
+      "output": "static",
+      "name": "巴士到站"
+    },
     "owner": "rexma510",
     "runtimeVersion": {
       "policy": "appVersion"
