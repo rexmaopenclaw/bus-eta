@@ -106,7 +106,8 @@ export default function BusMap({ stops, height = 300, route, bound, company }: B
               opacity: 1,
               fillOpacity: 0.6,
             }).addTo(mapInstance);
-            userMarker.bindPopup('你嘅位置').openPopup();
+            // autoPan: false — 唔好 marker 一郁就強制拉返地圖去而家位置
+            userMarker.bindPopup('你嘅位置', { autoPan: false });
           }
           // Pan to user on locate button click
           if (locateRequested) {
