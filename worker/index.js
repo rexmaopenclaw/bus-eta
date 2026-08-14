@@ -3,6 +3,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { routesData } from './routes-data.js';
+import { routeShapeMap } from './route-shape-map.js';
 
 const JWT_SECRET = new TextEncoder().encode('bus-eta-secret-key-2024');
 
@@ -217,7 +218,35 @@ export default {
 
     // ---- Proxy (CTB / KMB static data) ----
     const CTB_STATIC = 'https://winstonma.github.io/MMM-HK-Transport-ETA-Data/ctb';
-    const KMB_STATIC = 'https://winstonma.github.io/MMM-HK-Transport-ETA-Data/kmb';
+    const WAYPOINTS_BASE = 'https://hkbus.github.io/route-waypoints/';
+
+// Route shape: look up hkbus route-waypoints GeoJSON (daily synced from CSDI)
+async function fetchRouteShape(company, route, bound) {
+  const key = `${String(company).toUpperCase()}|${String(route).toUpperCase()}|${String(bound).toUpperCase()}`;
+  const file = routeShapeMap[key];
+  if (!file) return { coordinates: [] };
+  try {
+    const resp = await fetch(`${WAYPOINTS_BASE}${file}`);
+    if (!resp.ok) return { coordinates: [] };
+    const geojson = await resp.json();
+    const coords = [];
+    const features = geojson.features || [];
+    for (const f of features) {
+      const geom = f.geometry;
+      if (!geom || !geom.coordinates) continue;
+      if (geom.type === 'MultiLineString') {
+        for (const line of geom.coordinates) {
+          for (const [lng, lat] of line) coords.push([lat, lng]);
+        }
+      } else if (geom.type === 'LineString') {
+        for (const [lng, lat] of geom.coordinates) coords.push([lat, lng]);
+      }
+    }
+    return { coordinates: coords };
+  } catch {
+    return { coordinates: [] };
+  }
+}
 
     if (path.startsWith('/api/proxy/ctb/')) {
       const subpath = path.replace('/api/proxy/ctb/', '');
@@ -237,8 +266,13 @@ export default {
       });
     }
 
-    // ---- Route shape (empty for now) ----
+    // ---- Route shape (real waypoints from hkbus route-waypoints) ----
     if (path.startsWith('/api/route-shape/')) {
+      const parts = path.replace('/api/route-shape/', '').split('/');
+      if (parts.length >= 3) {
+        const [company, route, bound] = parts;
+        return json(await fetchRouteShape(company, route, bound));
+      }
       return json({ coordinates: [] });
     }
 
