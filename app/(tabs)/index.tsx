@@ -184,7 +184,9 @@ function GroupHeader({
   onToggle,
   onRename,
   onDelete,
-
+  onMoveUp,
+  onMoveDown,
+  canEdit,
 }: {
   group: string;
   count: number;
@@ -194,7 +196,9 @@ function GroupHeader({
   onToggle: () => void;
   onRename: () => void;
   onDelete: () => void;
-
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canEdit: boolean;
 }) {
   const theme = useAppTheme();
   const handleLongPress = () => {
@@ -245,6 +249,29 @@ function GroupHeader({
           <Ionicons name="ellipsis-horizontal" size={16} color={theme.colors.textSecondary} />
         )}
       </TouchableOpacity>
+      {/* 排序（上/下移）+ 改名 — web 版冇 drag，靠呢啲掣 */}
+      <TouchableOpacity
+        onPress={onMoveUp}
+        disabled={!onMoveUp}
+        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+        style={[styles.groupActionBtn, !onMoveUp && { opacity: 0.3 }]}>
+        <Ionicons name="arrow-up" size={15} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onMoveDown}
+        disabled={!onMoveDown}
+        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+        style={[styles.groupActionBtn, !onMoveDown && { opacity: 0.3 }]}>
+        <Ionicons name="arrow-down" size={15} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
+      {canEdit && (
+        <TouchableOpacity
+          onPress={onRename}
+          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+          style={styles.groupActionBtn}>
+          <Ionicons name="pencil" size={14} color={theme.colors.primary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -354,6 +381,7 @@ export default function HomeScreen() {
   const renderSectionItem = useCallback(
     ({ item, drag, isActive, getIndex }: RenderItemParams<SectionData>) => {
       const idx = getIndex() ?? 0;
+      const total = sections.length;
       return (
         <ScaleDecorator>
           <GroupHeader
@@ -381,7 +409,11 @@ export default function HomeScreen() {
                   },
                 ],
               );
-            }} />
+            }}
+            onMoveUp={idx > 0 ? () => moveGroup(idx, idx - 1) : undefined}
+            onMoveDown={idx < total - 1 ? () => moveGroup(idx, idx + 1) : undefined}
+            canEdit={item.group !== DEFAULT_GROUP}
+          />
           {item.items.map((fav) => (
             <DashboardCard key={fav.id} fav={fav} />
           ))}
@@ -523,7 +555,7 @@ export default function HomeScreen() {
             <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
           }
         >
-          {sections.map((section) => (
+          {sections.map((section, idx) => (
             <View key={section.key}>
               <GroupHeader
                 group={section.group}
@@ -543,7 +575,10 @@ export default function HomeScreen() {
                     { text: '刪除', style: 'destructive', onPress: () => deleteGroup(section.group) },
                   ]);
                 }}
-/>
+                onMoveUp={idx > 0 ? () => moveGroup(idx, idx - 1) : undefined}
+                onMoveDown={idx < sections.length - 1 ? () => moveGroup(idx, idx + 1) : undefined}
+                canEdit={section.group !== DEFAULT_GROUP}
+              />
               {section.items.map((fav) => (
                 <DashboardCard key={fav.id} fav={fav} />
               ))}
@@ -735,6 +770,10 @@ groupToggleArea: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  groupActionBtn: {
+    padding: 4,
+    marginLeft: 2,
   },
   groupTitle: { fontSize: 15, fontWeight: '700', flex: 1 },
   groupCount: { fontSize: 12, marginRight: 4 },
