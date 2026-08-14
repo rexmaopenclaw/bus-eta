@@ -218,6 +218,7 @@ export default {
 
     // ---- Proxy (CTB / KMB static data) ----
     const CTB_STATIC = 'https://winstonma.github.io/MMM-HK-Transport-ETA-Data/ctb';
+    const KMB_STATIC = 'https://winstonma.github.io/MMM-HK-Transport-ETA-Data/kmb';
     const WAYPOINTS_BASE = 'https://hkbus.github.io/route-waypoints/';
 
 // Route shape: look up hkbus route-waypoints GeoJSON (daily synced from CSDI)
