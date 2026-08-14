@@ -19,6 +19,7 @@ import {
   Platform,
   FlatList,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import DraggableFlatList, {
   RenderItemParams,
@@ -32,7 +33,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../../src/utils/theme';
 import { useFavoritesStore } from '../../src/store/favorites';
 import { useAuthStore } from '../../src/store/auth';
-import { setApiBase, getCurrentApiBase } from '../../src/api/auth';
+import { checkVersion, getStoredVersion, setStoredVersion, clearApiBase } from '../../src/api/auth';
 import { useStopETA, useRouteStops as useKMBRouteStops, busKeys } from '../../src/hooks/useETA';
 import { useCTBRouteStops, useCTBStopETA, ctbKeys } from '../../src/hooks/useCTBETA';
 import { getBoundLabelShort } from '../../src/utils/bound';
@@ -294,9 +295,12 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [apiUrlModal, setApiUrlModal] = useState(false);
-  const [apiUrlInput, setApiUrlInput] = useState('');
-  const [apiUrlSaved, setApiUrlSaved] = useState(false);
+  // Version check modal state
+  const [versionModal, setVersionModal] = useState(false);
+  const [versionChecking, setVersionChecking] = useState(false);
+  const [versionInfo, setVersionInfo] = useState<{ version: string; date: string } | null>(null);
+  const [versionError, setVersionError] = useState('');
+  const [hasUpdate, setHasUpdate] = useState(false);
   // 等 store load 完先初始化 — 預設全部摺埋
   useEffect(() => {
     if (loaded && favorites.length > 0) {
@@ -342,6 +346,29 @@ export default function HomeScreen() {
     await queryClient.invalidateQueries({ queryKey: ['ctb'] });
     setIsRefreshing(false);
   }, [queryClient]);
+  const handleCheckVersion = useCallback(async () => {
+    setVersionChecking(true);
+    setVersionError('');
+    setHasUpdate(false);
+    try {
+      const info = await checkVersion();
+      setVersionInfo(info);
+      const stored = getStoredVersion();
+      setHasUpdate(!stored || stored !== info.version);
+    } catch (err: any) {
+      setVersionError(err.message || '檢查失敗，請稍後再試');
+    } finally {
+      setVersionChecking(false);
+    }
+  }, []);
+  const handleReload = useCallback(() => {
+    if (versionInfo) setStoredVersion(versionInfo.version);
+    if (Platform.OS === 'web') {
+      window.location.reload();
+    } else {
+      Alert.alert('請重新開啟 App', '新版本已下載，重新開啟即可套用');
+    }
+  }, [versionInfo]);
   const toggleCollapse = (group: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -536,15 +563,15 @@ export default function HomeScreen() {
               <Text style={styles.loginBtnText}>登入</Text>
             </TouchableOpacity>
           )}
-          {/* Settings gear */}
+          {/* Version check */}
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
             onPress={() => {
-              setApiUrlInput(getCurrentApiBase());
-              setApiUrlSaved(false);
-              setApiUrlModal(true);
+              clearApiBase();
+              setVersionModal(true);
+              handleCheckVersion();
             }}>
-            <Ionicons name="settings-outline" size={18} color={theme.colors.textSecondary} />
+            <Ionicons name="information-circle-outline" size={18} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -637,50 +664,63 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-      {/* API URL Settings Modal */}
+      {/* Version Update Modal */}
       <Modal
-        visible={apiUrlModal}
+        visible={versionModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setApiUrlModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setApiUrlModal(false)}>
+        onRequestClose={() => setVersionModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setVersionModal(false)}>
           <Pressable
             style={[styles.renameModal, { backgroundColor: theme.colors.card }]}
             onPress={(e) => e.stopPropagation()}>
-            <Ionicons name="cloud-outline" size={28} color={theme.colors.primary} style={{marginBottom: 8}} />
-            <Text style={[styles.renameTitle, { color: theme.colors.text }]}>伺服器 URL</Text>
-            <Text style={{fontSize: 12, color: theme.colors.textSecondary, marginBottom: 10, textAlign: 'center'}}>
-              Tunnel URL 轉咗就喺呢度改，唔使重新 build
-            </Text>
-            <TextInput
-              style={[styles.renameInput, { color: theme.colors.text, borderColor: theme.colors.border }]}
-              value={apiUrlInput}
-              onChangeText={setApiUrlInput}
-              placeholder="https://xxx.trycloudflare.com"
-              placeholderTextColor={theme.colors.textSecondary}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {apiUrlSaved && (
-              <Text style={{color: '#4caf50', fontSize: 13, marginBottom: 10}}>✓ 已儲存</Text>
-            )}
+            <Ionicons name="information-circle-outline" size={28} color={theme.colors.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.renameTitle, { color: theme.colors.text }]}>版本更新</Text>
+            {versionChecking ? (
+              <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 14 }} />
+            ) : versionError ? (
+              <Text style={{ color: theme.colors.error, fontSize: 13, marginBottom: 12, textAlign: 'center' }}>
+                {versionError}
+              </Text>
+            ) : versionInfo ? (
+              <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>
+                  目前版本：{getStoredVersion() || '未知'}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '700',
+                    color: hasUpdate ? theme.colors.primary : '#4caf50',
+                    marginTop: 6,
+                  }}>
+                  {hasUpdate ? '🆕 有新版本！' : '✅ 已是最新版本'}
+                </Text>
+                <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 4, textAlign: 'center' }}>
+                  最新：{versionInfo.version}（{new Date(versionInfo.date).toLocaleString()}）
+                </Text>
+              </View>
+            ) : null}
             <View style={styles.renameButtons}>
               <TouchableOpacity
                 style={[styles.renameBtn, { backgroundColor: theme.colors.primaryLight }]}
-                onPress={() => setApiUrlModal(false)}>
+                onPress={() => setVersionModal(false)}>
                 <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>關閉</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.renameBtn, { backgroundColor: theme.colors.primary }]}
-                onPress={() => {
-                  if (apiUrlInput.trim()) {
-                    setApiBase(apiUrlInput.trim());
-                    setApiUrlSaved(true);
-                    setTimeout(() => setApiUrlModal(false), 1000);
-                  }
-                }}>
-                <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>儲存</Text>
-              </TouchableOpacity>
+              {hasUpdate ? (
+                <TouchableOpacity
+                  style={[styles.renameBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={handleReload}>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>重新載入</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.renameBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={handleCheckVersion}
+                  disabled={versionChecking}>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>檢查更新</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </Pressable>
         </Pressable>

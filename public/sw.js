@@ -30,6 +30,9 @@ self.addEventListener('fetch', (e) => {
   // Never cache API responses (ETA/auth data must stay live)
   if (url.pathname.startsWith('/api/')) return;
 
+  // Never cache version.json — version check must always be live
+  if (url.pathname === '/version.json') return;
+
   // Cross-origin (ETA endpoints: rt.data.gov.hk, data.etabus.gov.hk):
   // passthrough — never cache, ETA must always be live
   if (url.origin !== self.location.origin) return;

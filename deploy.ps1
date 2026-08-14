@@ -18,6 +18,18 @@ git commit -m $msg
 git push
 if ($LASTEXITCODE -ne 0) { echo "GIT PUSH FAIL"; exit 1 }
 
+# Capture deployed commit hash + timestamp for version.json
+$gitHash = git rev-parse --short HEAD
+$timeStamp = Get-Date -Format "yyyy-MM-ddTHH:mm:sszzz"
+
+# Ensure dist/ exists (built by: npx expo export -p web)
+if (-not (Test-Path "dist")) { echo "dist/ NOT FOUND — run npx expo export -p web first"; exit 1 }
+
+# Write version.json into dist/ (ASCII-safe JSON via .NET, avoids PS5.1 UTF8 BOM issues)
+$verJson = '{"version":"' + $gitHash + '","date":"' + $timeStamp + '"}'
+[System.IO.File]::WriteAllText((Join-Path $root "dist\version.json"), $verJson)
+echo "version.json: $verJson"
+
 echo "=== 3. Deploy Cloudflare ==="
 npx wrangler deploy
 if ($LASTEXITCODE -ne 0) { echo "DEPLOY FAIL"; exit 1 }
