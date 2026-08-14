@@ -6,4 +6,5 @@ server/
 .cache/
 *.zip
 *.tar.gz
-routeFareList.min.json # 8MB temp download for build-route-shape-map.js
+# 8MB temp download for build-route-shape-map.js
+routeFareList.min.json

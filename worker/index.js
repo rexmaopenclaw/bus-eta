@@ -231,15 +231,21 @@ async function fetchRouteShape(company, route, bound) {
     const geojson = await resp.json();
     const coords = [];
     const features = geojson.features || [];
+    const pushPoint = (lat, lng) => {
+      const last = coords[coords.length - 1];
+      if (!last || last[0] !== lat || last[1] !== lng) {
+        coords.push([lat, lng]);
+      }
+    };
     for (const f of features) {
       const geom = f.geometry;
       if (!geom || !geom.coordinates) continue;
       if (geom.type === 'MultiLineString') {
         for (const line of geom.coordinates) {
-          for (const [lng, lat] of line) coords.push([lat, lng]);
+          for (const [lng, lat] of line) pushPoint(lat, lng);
         }
       } else if (geom.type === 'LineString') {
-        for (const [lng, lat] of geom.coordinates) coords.push([lat, lng]);
+        for (const [lng, lat] of geom.coordinates) pushPoint(lat, lng);
       }
     }
     return { coordinates: coords };
