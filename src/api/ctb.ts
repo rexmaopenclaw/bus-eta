@@ -158,7 +158,7 @@ export async function getStopETA(
   stopId: string,
   route: string,
 ): Promise<KMBETA[]> {
-  const url = `${ETA_BASE}/eta/CTB/${stopId}/${route}`;
+  const url = `${ETA_BASE}/eta/CTB/${stopId}/${route}?t=${Date.now()}`;
   const json = await fetchJson<ApiResponse<KMBETA[]>>(url);
   return json.data;
 }
@@ -171,7 +171,7 @@ export async function getRouteETA(
   bound: 'O' | 'I',
 ): Promise<KMBETA[]> {
   const apiBound = ctbBoundToApi(bound);
-  const url = `${ETA_BASE}/eta/ctb/${route}/${apiBound}`;
+  const url = `${ETA_BASE}/eta/ctb/${route}/${apiBound}?t=${Date.now()}`;
   const json = await fetchJson<ApiResponse<KMBETA[]>>(url);
   return json.data;
 }

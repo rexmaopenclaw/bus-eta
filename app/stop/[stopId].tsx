@@ -143,13 +143,25 @@ export default function StopETAScreen() {
         ]}>
         <View style={styles.headerRow}>
           <RouteBadge route={route!} company={company} />
-          <TouchableOpacity onPress={toggleFavorite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons
-              name={isFav ? 'star' : 'star-outline'}
-              size={24}
-              color={isFav ? theme.colors.warning : theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => refetch()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.headerIconBtn}>
+              <Ionicons
+                name={isRefetching ? 'sync-outline' : 'refresh-outline'}
+                size={22}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleFavorite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons
+                name={isFav ? 'star' : 'star-outline'}
+                size={24}
+                color={isFav ? theme.colors.warning : theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -415,6 +427,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  headerIconBtn: {
+    padding: 2,
   },
   stopNameRow: {
     flexDirection: 'row',

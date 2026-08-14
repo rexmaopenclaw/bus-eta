@@ -148,7 +148,7 @@ export async function getStopETA(
   route: string,
   serviceType: string = '1',
 ): Promise<KMBETA[]> {
-  const url = `${ETA_BASE}/eta/${stopId}/${route}/${serviceType}`;
+  const url = `${ETA_BASE}/eta/${stopId}/${route}/${serviceType}?t=${Date.now()}`;
   const json = await fetchJson<ApiResponse<KMBETA[]>>(url);
   return json.data;
 }

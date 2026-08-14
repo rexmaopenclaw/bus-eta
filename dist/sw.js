@@ -1,5 +1,5 @@
-// Bus ETA PWA service worker — cache static assets for offline, never cache API data
-const CACHE = 'buseta-v1';
+// Bus ETA PWA service worker — cache static assets for offline, never cache API/ETA data
+const CACHE = 'buseta-v2';
 const CORE = [
   '/',
   '/index.html',
@@ -30,22 +30,9 @@ self.addEventListener('fetch', (e) => {
   // Never cache API responses (ETA/auth data must stay live)
   if (url.pathname.startsWith('/api/')) return;
 
-  // Cross-origin: cache-first, fallback network
-  if (url.origin !== self.location.origin) {
-    e.respondWith(
-      caches.match(e.request).then((hit) => {
-        if (hit) return hit;
-        return fetch(e.request).then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        });
-      })
-    );
-    return;
-  }
+  // Cross-origin (ETA endpoints: rt.data.gov.hk, data.etabus.gov.hk):
+  // passthrough — never cache, ETA must always be live
+  if (url.origin !== self.location.origin) return;
 
   // Same-origin static: stale-while-revalidate
   e.respondWith(
