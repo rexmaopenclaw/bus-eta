@@ -41,7 +41,10 @@ interface RouteSel {
 }
 
 interface CommonStop {
-  stopId: string;
+  stopIdA: string;
+  stopIdB: string;
+  boundA: 'O' | 'I';
+  boundB: 'O' | 'I';
   nameTc: string;
   nameEn: string;
   seqA: number;
@@ -64,7 +67,6 @@ function RoutePickerModal({
 }) {
   const theme = useAppTheme();
   const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState<string | null>(null);
 
   const { data: kmbRoutes } = useAllRoutes();
   const { data: ctbRoutes } = useCTBAllRoutes();
@@ -94,10 +96,6 @@ function RoutePickerModal({
     }));
   }, [allRoutes, query]);
 
-  const handleTapRoute = (routeNum: string) => {
-    setExpanded(expanded === routeNum ? null : routeNum);
-  };
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
@@ -123,7 +121,6 @@ function RoutePickerModal({
               value={query}
               onChangeText={(t) => {
                 setQuery(t);
-                setExpanded(null);
               }}
               autoFocus
               autoCapitalize="characters"
@@ -146,63 +143,39 @@ function RoutePickerModal({
                 </Text>
               </View>
             }
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.pickerRouteCard,
-                  { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
-                ]}>
+            renderItem={({ item }) => {
+              // 預設揀第一個常規班次方向
+              const bound = item.bounds.find((b) => b.service_type === '1') ?? item.bounds[0];
+              return (
                 <TouchableOpacity
-                  style={styles.pickerRouteHeader}
-                  onPress={() => handleTapRoute(item.route)}>
+                  style={[
+                    styles.pickerRouteCard,
+                    { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+                  ]}
+                  onPress={() => {
+                    onSelect({
+                      route: bound.route,
+                      bound: bound.bound as 'O' | 'I',
+                      company: item.company,
+                      serviceType: bound.service_type,
+                      origTc: bound.orig_tc,
+                      destTc: bound.dest_tc,
+                    });
+                    setQuery('');
+                    onClose();
+                  }}>
                   <RouteBadge
                     route={item.route}
                     company={item.company}
                     destTc={`${item.bounds[0]?.orig_tc ?? ''} → ${item.bounds[0]?.dest_tc ?? ''}`}
                   />
-                  <Ionicons
-                    name={expanded === item.route ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={theme.colors.textSecondary}
-                  />
+                  <Text style={[styles.pickerHint, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                    去程/回程都會自動偵測轉車站
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
-                {expanded === item.route && (
-                  <View style={styles.pickerBounds}>
-                    {item.bounds.map((bound, idx) => (
-                      <TouchableOpacity
-                        key={`${bound.bound}-${bound.service_type}`}
-                        style={[
-                          styles.pickerBound,
-                          { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
-                        ]}
-                        onPress={() => {
-                          onSelect({
-                            route: bound.route,
-                            bound: bound.bound as 'O' | 'I',
-                            company: item.company,
-                            serviceType: bound.service_type,
-                            origTc: bound.orig_tc,
-                            destTc: bound.dest_tc,
-                          });
-                          setQuery('');
-                          setExpanded(null);
-                          onClose();
-                        }}>
-                        <Text style={styles.pickerBoundLabel}>
-                          {getBoundLabelShort(bound.bound as 'O' | 'I', item.company)}
-                        </Text>
-                        <Text style={[styles.pickerBoundDest, { color: theme.colors.text }]}>
-                          {bound.orig_tc} → {bound.dest_tc}
-                        </Text>
-                        {bound.service_type !== '1' && (
-                          <Text style={styles.pickerBoundRemark}>特別班次</Text>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
+              );
+            }}
           />
         </Pressable>
       </Pressable>
@@ -213,7 +186,7 @@ function RoutePickerModal({
 // ============================================================
 // 單一 ETA 卡（路線 header + 班次）
 // ============================================================
-function TransferEtaCard({ sel, etas }: { sel: RouteSel; etas: any[] }) {
+function TransferEtaCard({ sel, bound, etas }: { sel: RouteSel; bound: 'O' | 'I'; etas: any[] }) {
   const theme = useAppTheme();
   return (
     <View
@@ -224,7 +197,7 @@ function TransferEtaCard({ sel, etas }: { sel: RouteSel; etas: any[] }) {
       <View style={styles.etaCardHeader}>
         <RouteBadge route={sel.route} company={sel.company} />
         <Text style={[styles.etaCardBound, { color: theme.colors.textSecondary }]}>
-          {getBoundLabelShort(sel.bound, sel.company)}
+          {getBoundLabelShort(bound, sel.company)}
         </Text>
         <Text style={[styles.etaCardDest, { color: theme.colors.textSecondary }]} numberOfLines={1}>
           {sel.origTc} → {sel.destTc}
@@ -281,24 +254,18 @@ export default function TransferScreen() {
   const stopsA: RouteStopDetail[] = ((routeA?.company === 'KMB' ? kmbStopsA : ctbStopsA) ?? []) as RouteStopDetail[];
   const stopsB: RouteStopDetail[] = ((routeB?.company === 'KMB' ? kmbStopsB : ctbStopsB) ?? []) as RouteStopDetail[];
 
-  // 按 bound + service_type 過濾
+  // 按 service_type 過濾（唔理方向 — 合併晒 O/I，等用戶唔使估方向）
   const filteredA = useMemo(() => {
     if (!routeA) return [];
-    return stopsA.filter(
-      (s) =>
-        s.bound === routeA.bound && String(s.service_type) === routeA.serviceType,
-    );
+    return stopsA.filter((s) => String(s.service_type) === routeA.serviceType);
   }, [stopsA, routeA]);
 
   const filteredB = useMemo(() => {
     if (!routeB) return [];
-    return stopsB.filter(
-      (s) =>
-        s.bound === routeB.bound && String(s.service_type) === routeB.serviceType,
-    );
+    return stopsB.filter((s) => String(s.service_type) === routeB.serviceType);
   }, [stopsB, routeB]);
 
-  // 搵共同轉車站
+  // 搵共同轉車站（唔理方向，合併晒所有 bound）
   const commonStops = useMemo<CommonStop[]>(() => {
     if (!routeA || !routeB || filteredA.length === 0 || filteredB.length === 0) return [];
     // 同公司：stop ID 匹配
@@ -306,33 +273,45 @@ export default function TransferScreen() {
       const bById = new Map(filteredB.map((s) => [s.stop, s]));
       return filteredA
         .filter((a) => bById.has(a.stop))
-        .map((a) => ({
-          stopId: a.stop,
-          nameTc: a.name_tc,
-          nameEn: a.name_en,
-          seqA: a.seq,
-          seqB: bById.get(a.stop)!.seq,
-        }));
+        .map((a) => {
+          const b = bById.get(a.stop)!;
+          return {
+            stopIdA: a.stop,
+            stopIdB: b.stop,
+            boundA: a.bound,
+            boundB: b.bound,
+            nameTc: a.name_tc,
+            nameEn: a.name_en,
+            seqA: a.seq,
+            seqB: b.seq,
+          };
+        });
     }
     // 跨公司：站名去括號匹配
     const norm = (n: string) => n.replace(/\s*\(.*?\)\s*/g, '').trim();
     const bByName = new Map(filteredB.map((s) => [norm(s.name_tc), s]));
     return filteredA
       .filter((a) => bByName.has(norm(a.name_tc)))
-      .map((a) => ({
-        stopId: a.stop,
-        nameTc: a.name_tc,
-        nameEn: a.name_en,
-        seqA: a.seq,
-        seqB: bByName.get(norm(a.name_tc))!.seq,
-      }));
+      .map((a) => {
+        const b = bByName.get(norm(a.name_tc))!;
+        return {
+          stopIdA: a.stop,
+          stopIdB: b.stop,
+          boundA: a.bound,
+          boundB: b.bound,
+          nameTc: a.name_tc,
+          nameEn: a.name_en,
+          seqA: a.seq,
+          seqB: b.seq,
+        };
+      });
   }, [routeA, routeB, filteredA, filteredB]);
 
   // 揀咗兩線 → 自動揀第一個共同站
   useEffect(() => {
     if (commonStops.length > 0) {
       setSelectedStop((prev) => {
-        if (prev && commonStops.some((s) => s.stopId === prev.stopId)) return prev;
+        if (prev && commonStops.some((s) => s.stopIdA === prev.stopIdA)) return prev;
         return commonStops[0];
       });
     } else {
@@ -342,34 +321,44 @@ export default function TransferScreen() {
 
   // ---- ETA（top-level hooks）----
   const { data: etaKmbA } = useStopETA(
-    selectedStop && routeA?.company === 'KMB' ? selectedStop.stopId : '',
+    selectedStop && routeA?.company === 'KMB' ? selectedStop.stopIdA : '',
     routeA?.route ?? '',
     routeA?.serviceType ?? '1',
     !!selectedStop && !!routeA && routeA.company === 'KMB',
   );
   const { data: etaCtbA } = useCTBStopETA(
-    selectedStop && routeA?.company === 'CTB' ? selectedStop.stopId : '',
+    selectedStop && routeA?.company === 'CTB' ? selectedStop.stopIdA : '',
     routeA?.route ?? '',
-    routeA?.bound ?? 'O',
-    null,
+    selectedStop?.boundA ?? 'O',
+    selectedStop?.seqA ?? null,
     !!selectedStop && !!routeA && routeA.company === 'CTB',
   );
   const { data: etaKmbB } = useStopETA(
-    selectedStop && routeB?.company === 'KMB' ? selectedStop.stopId : '',
+    selectedStop && routeB?.company === 'KMB' ? selectedStop.stopIdB : '',
     routeB?.route ?? '',
     routeB?.serviceType ?? '1',
     !!selectedStop && !!routeB && routeB.company === 'KMB',
   );
   const { data: etaCtbB } = useCTBStopETA(
-    selectedStop && routeB?.company === 'CTB' ? selectedStop.stopId : '',
+    selectedStop && routeB?.company === 'CTB' ? selectedStop.stopIdB : '',
     routeB?.route ?? '',
-    routeB?.bound ?? 'O',
-    null,
+    selectedStop?.boundB ?? 'O',
+    selectedStop?.seqB ?? null,
     !!selectedStop && !!routeB && routeB.company === 'CTB',
   );
 
-  const etaA = routeA?.company === 'KMB' ? (etaKmbA ?? []) : (etaCtbA ?? []);
-  const etaB = routeB?.company === 'KMB' ? (etaKmbB ?? []) : (etaCtbB ?? []);
+  // ETA filter：只保留揀咗方向嘅班次
+  const etaA = useMemo(() => {
+    const raw = routeA?.company === 'KMB' ? (etaKmbA ?? []) : (etaCtbA ?? []);
+    if (!selectedStop) return raw;
+    return raw.filter((e: any) => e.dir === selectedStop.boundA || e.dir === undefined);
+  }, [etaKmbA, etaCtbA, routeA, selectedStop]);
+
+  const etaB = useMemo(() => {
+    const raw = routeB?.company === 'KMB' ? (etaKmbB ?? []) : (etaCtbB ?? []);
+    if (!selectedStop) return raw;
+    return raw.filter((e: any) => e.dir === selectedStop.boundB || e.dir === undefined);
+  }, [etaKmbB, etaCtbB, routeB, selectedStop]);
 
   const upcomingA = useMemo(
     () => etaA.filter((e: any) => e.eta && new Date(e.eta).getTime() > Date.now() - 60_000).slice(0, 3),
@@ -481,10 +470,10 @@ export default function TransferScreen() {
                 ) : (
                   <View style={styles.stopChips}>
                     {commonStops.map((s) => {
-                      const isSel = selectedStop?.stopId === s.stopId;
+                      const isSel = selectedStop?.stopIdA === s.stopIdA;
                       return (
                         <TouchableOpacity
-                          key={s.stopId}
+                          key={s.stopIdA}
                           style={[
                             styles.stopChip,
                             {
@@ -502,6 +491,12 @@ export default function TransferScreen() {
                             numberOfLines={1}>
                             {s.nameTc}
                           </Text>
+                          {!isSel && (
+                            <Text style={styles.stopChipDir} numberOfLines={1}>
+                              {getBoundLabelShort(s.boundA, routeA.company)} →{' '}
+                              {getBoundLabelShort(s.boundB, routeB.company)}
+                            </Text>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
@@ -520,8 +515,8 @@ export default function TransferScreen() {
                   {selectedStop.nameEn}
                 </Text>
                 <View style={styles.etaCards}>
-                  <TransferEtaCard sel={routeA} etas={upcomingA} />
-                  <TransferEtaCard sel={routeB} etas={upcomingB} />
+                  <TransferEtaCard sel={routeA} bound={selectedStop.boundA} etas={upcomingA} />
+                  <TransferEtaCard sel={routeB} bound={selectedStop.boundB} etas={upcomingB} />
                 </View>
                 <Text style={[styles.autoRefreshHint, { color: theme.colors.textSecondary }]}>
                   每 30 秒自動更新
@@ -606,6 +601,8 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   stopChipText: { fontSize: 13, fontWeight: '600' },
+  stopChipDir: { fontSize: 10, opacity: 0.7, marginTop: 1 },
+  pickerHint: { flex: 1, fontSize: 12, marginLeft: 8, opacity: 0.8 },
   etaCards: { gap: 10, marginTop: 4 },
   etaCard: {
     borderRadius: 12,

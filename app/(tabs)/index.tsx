@@ -325,6 +325,8 @@ export default function HomeScreen() {
   const [versionInfo, setVersionInfo] = useState<{ version: string; date: string } | null>(null);
   const [versionError, setVersionError] = useState('');
   const [hasUpdate, setHasUpdate] = useState(false);
+  // Changelog 狀態
+  const [changelog, setChangelog] = useState<any[]>([]);
   // 等 store load 完先初始化 — 預設全部摺埋
   useEffect(() => {
     if (loaded && favorites.length > 0) {
@@ -379,6 +381,16 @@ export default function HomeScreen() {
       setVersionInfo(info);
       const stored = getStoredVersion();
       setHasUpdate(!stored || stored !== info.version);
+      // 攞 changelog（同源 static，唔會 fail 到主流程）
+      try {
+        const res = await fetch(`/changelog.json?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setChangelog(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        setChangelog([]);
+      }
     } catch (err: any) {
       setVersionError(err.message || '檢查失敗，請稍後再試');
     } finally {
