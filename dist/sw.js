@@ -1,5 +1,5 @@
 // Bus ETA PWA service worker — cache static assets for offline, never cache API/ETA data
-const CACHE = 'buseta-v2';
+const CACHE = 'buseta-v3';
 const CORE = [
   '/',
   '/index.html',

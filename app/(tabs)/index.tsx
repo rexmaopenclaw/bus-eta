@@ -489,6 +489,11 @@ export default function HomeScreen() {
         <View style={[styles.headerBar, { borderBottomColor: theme.colors.border }]}>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Bus ETA</Text>
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
+              onPress={() => router.push('/transfer')}>
+              <Ionicons name="swap-horizontal" size={18} color={theme.colors.primary} />
+            </TouchableOpacity>
             {user ? (
               <>
                 <TouchableOpacity
