@@ -53,7 +53,13 @@ interface SectionData {
 // ============================================================
 // Dashboard 卡片 — 分 KMB / CTB 版本
 // ============================================================
-function DashboardCard({ fav }: { fav: FavoriteRoute }) {
+function DashboardCard({ fav, canMoveUp, canMoveDown, onMoveUp, onMoveDown }: {
+  fav: FavoriteRoute;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+}) {
   const theme = useAppTheme();
   const removeFavorite = useFavoritesStore((s) => s.remove);
   const moveToGroup = useFavoritesStore((s) => s.moveToGroup);
@@ -106,6 +112,23 @@ function DashboardCard({ fav }: { fav: FavoriteRoute }) {
           style={styles.starBtn}>
           <Ionicons name="star" size={16} color={theme.colors.warning} />
         </TouchableOpacity>
+        {/* 站內排序：上/下移（group 內換位） */}
+        <View style={styles.cardMoveBtns}>
+          <TouchableOpacity
+            onPress={onMoveUp}
+            disabled={!onMoveUp || !canMoveUp}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={[styles.cardMoveBtn, (!onMoveUp || !canMoveUp) && { opacity: 0.25 }]}>
+            <Ionicons name="chevron-up" size={14} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onMoveDown}
+            disabled={!onMoveDown || !canMoveDown}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={[styles.cardMoveBtn, (!onMoveDown || !canMoveDown) && { opacity: 0.25 }]}>
+            <Ionicons name="chevron-down" size={14} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
       {/* ETA body — tap to navigate */}
       <TouchableOpacity
@@ -285,6 +308,7 @@ export default function HomeScreen() {
   const favorites = useFavoritesStore((s) => s.favorites);
   const loaded = useFavoritesStore((s) => s.loaded);
   const getGroups = useFavoritesStore((s) => s.getGroups);
+  const moveFavorite = useFavoritesStore((s) => s.moveFavorite);
   const renameGroup = useFavoritesStore((s) => s.renameGroup);
   const deleteGroup = useFavoritesStore((s) => s.deleteGroup);
   const moveGroup = useFavoritesStore((s) => s.moveGroup);
@@ -441,13 +465,20 @@ export default function HomeScreen() {
             onMoveDown={idx < total - 1 ? () => moveGroup(idx, idx + 1) : undefined}
             canEdit={item.group !== DEFAULT_GROUP}
           />
-          {item.items.map((fav) => (
-            <DashboardCard key={fav.id} fav={fav} />
+          {item.items.map((fav, favIdx) => (
+            <DashboardCard
+              key={fav.id}
+              fav={fav}
+              canMoveUp={favIdx > 0}
+              canMoveDown={favIdx < item.items.length - 1}
+              onMoveUp={() => moveFavorite(fav.id, -1)}
+              onMoveDown={() => moveFavorite(fav.id, 1)}
+            />
           ))}
         </ScaleDecorator>
       );
     },
-    [collapsedGroups, deleteGroup, renameGroup, moveGroup, sections.length],
+    [collapsedGroups, deleteGroup, renameGroup, moveGroup, sections.length, moveFavorite],
   );
   // Empty state
   if (favorites.length === 0) {
@@ -606,8 +637,15 @@ export default function HomeScreen() {
                 onMoveDown={idx < sections.length - 1 ? () => moveGroup(idx, idx + 1) : undefined}
                 canEdit={section.group !== DEFAULT_GROUP}
               />
-              {section.items.map((fav) => (
-                <DashboardCard key={fav.id} fav={fav} />
+              {section.items.map((fav, favIdx) => (
+                <DashboardCard
+                  key={fav.id}
+                  fav={fav}
+                  canMoveUp={favIdx > 0}
+                  canMoveDown={favIdx < section.items.length - 1}
+                  onMoveUp={() => moveFavorite(fav.id, -1)}
+                  onMoveDown={() => moveFavorite(fav.id, 1)}
+                />
               ))}
             </View>
           ))}
@@ -781,6 +819,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   starBtn: { padding: 2 },
+  cardMoveBtns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 2,
+  },
+  cardMoveBtn: {
+    padding: 2,
+  },
   starOverlayBtn: {
     position: 'absolute',
     top: 8,

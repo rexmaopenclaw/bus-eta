@@ -37,6 +37,8 @@ interface FavoritesState {
   deleteGroup: (name: string) => Promise<void>;
   /** 移動群組次序 */
   moveGroup: (fromIndex: number, toIndex: number) => Promise<void>;
+  /** 將收藏喺同 group 內上/下移一格（direction: -1 上 / 1 下） */
+  moveFavorite: (favId: string, direction: -1 | 1) => Promise<void>;
   /** 設定整個群組次序（用於拖曳完成後一次過更新） */
   setGroupOrder: (order: string[]) => Promise<void>;
   /** 同步收藏到 server */
@@ -179,6 +181,28 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   setGroupOrder: async (order: string[]) => {
     set({ groupOrder: order });
     await AsyncStorage.setItem(STORAGE_KEY + '_groupOrder', JSON.stringify(order));
+  },
+
+  moveFavorite: async (favId: string, direction: -1 | 1) => {
+    const { favorites } = get();
+    const idx = favorites.findIndex((f) => f.id === favId);
+    if (idx < 0) return;
+    const fav = favorites[idx];
+    // 搵晒同 group 內嘅 index（順序 = 而家顯示順序）
+    const groupIdx: number[] = [];
+    favorites.forEach((f, i) => {
+      if (f.group === fav.group) groupIdx.push(i);
+    });
+    const pos = groupIdx.indexOf(idx);
+    const targetPos = pos + direction;
+    // 邊界：group 內第一個唔可以再上，最後一個唔可以再下
+    if (targetPos < 0 || targetPos >= groupIdx.length) return;
+    const targetIdx = groupIdx[targetPos];
+    const updated = [...favorites];
+    updated[idx] = favorites[targetIdx];
+    updated[targetIdx] = fav;
+    set({ favorites: updated });
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   },
 
   syncToServer: async (token: string) => {
