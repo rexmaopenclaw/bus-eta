@@ -1,0 +1,195 @@
+[
+  {
+    "date": "2026-08-16",
+    "version": "2a0ef85d",
+    "title": "- **問題**：舊版要用戶揀方向，石門轉車站只喺 299X(去程)×43X(回程) 先出現，揀錯組合就見唔到",
+    "changes": [
+      {
+        "category": "🐛 Fix: 轉乘查詢 — 石門轉車站唔見咗",
+        "items": [
+          "**改法**：搵共同站唔再理方向（合併晒 O/I），用戶唔使估；揀咗站先自動用正確方向查 ETA",
+          "Route picker 簡化：揀路線即完成，唔使再揀方向（去程/回程自動偵測）",
+          "轉車站 chips 顯示方向提示（例如「去程 → 回程」）",
+          "實測：299X + 43X → 6 個共同站，石門轉車站-濱景花園 (ST148) 一定出現"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-16",
+    "version": "34ccb73",
+    "title": "- **empty state header 漏咗 ⇄ icon** — 之前 batch edit 失敗 atomic rollback，只加咗 main header；今次補返兩邊都有",
+    "changes": [
+      {
+        "category": "🐛 Fix: 轉乘 icon 顯示問題",
+        "items": [
+          "**SW cache bump `buseta-v2` → `buseta-v3`** — stale-while-revalidate 會 serve 舊版 JS bundle，bump cache 名逼 browser 重新載入新版本（930X 同類問題）"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-16",
+    "version": "e4f18e6",
+    "title": "- 新 screen `app/transfer.tsx`：揀兩條路線（KMB + CTB，揀埋方向）→ 自動搵共同轉車站（同公司 stop ID 匹配、跨公司站名去括號匹配）→ 揀站對照兩線 ETA（每 30 秒自動更新）",
+    "changes": [
+      {
+        "category": "✨ 新功能: 轉乘查詢 V1",
+        "items": [
+          "Home 頂 bar 加 ⇄ 轉乘 icon（empty state + main 兩個 header）",
+          "實測：299X + 43X → 6 個共同站（石門轉車站-濱景花園 ST148、亞公角、沙田醫院、沙田第一城等）",
+          "V1 唔包接駁分析（Rex 決定）"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-16",
+    "version": "8e1c210",
+    "title": "- 每個收藏車站卡加 ↑↓ chevron 掣，group 內上/下移一格",
+    "changes": [
+      {
+        "category": "✨ 新功能: 分組收藏車站可改順序",
+        "items": [
+          "邊界自動 disabled（第一個冇 ↑、最後一個冇 ↓）",
+          "Store 加 `moveFavorite(favId, direction)`，順序存 AsyncStorage",
+          "Native + Web 都支援"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-15",
+    "version": "2a0ee2f",
+    "title": "- map popup autoPan off — 拖地圖唔再跳去 current location",
+    "changes": [
+      {
+        "category": "🐛 Fix: 地圖 popup 跳位",
+        "items": []
+      }
+    ]
+  },
+  {
+    "date": "2026-08-15",
+    "version": "28bffde",
+    "title": "- 補返 worker 缺失嘅 `KMB_STATIC` 定義",
+    "changes": [
+      {
+        "category": "🐛 Fix: worker proxy",
+        "items": []
+      }
+    ]
+  },
+  {
+    "date": "2026-08-15",
+    "version": "435b811",
+    "title": "- 移除 API URL 設定（Settings modal），改為版本檢查（檢查更新 icon → 有新版本提示重新載入）",
+    "changes": [
+      {
+        "category": "✨ 新功能: 版本檢查",
+        "items": []
+      }
+    ]
+  },
+  {
+    "date": "2026-08-15",
+    "version": "90e6308",
+    "title": "- GroupHeader 加 ↑↓ 排序掣 + ✏️ 改名掣",
+    "changes": [
+      {
+        "category": "✨ 新功能: 群組改名 + 排序（web + native）",
+        "items": [
+          "✏️ 掣：rename modal；↑↓ 掣：moveGroup(idx, idx±1)；「預設」群組唔顯示 ✏️"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-15",
+    "version": "a54dabc",
+    "title": "- 加返 refresh 掣 — 首頁 header + stop 頁 header",
+    "changes": [
+      {
+        "category": "🐛 Fix: refresh 掣 + SW cache bug（930X 冇 data 根源）",
+        "items": [
+          "SW cross-origin 由 cache-first 改為 passthrough（ETA 必須 live）；bump cache 至 `buseta-v2`",
+          "ctb.ts/kmb.ts ETA URL 加 `?t=Date.now()` cache-buster",
+          "背景：SW cache 咗空 ETA response，之後永遠 show 空 data"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-15",
+    "version": "bc1200e",
+    "title": "- manifest + service worker + icons（installable app）",
+    "changes": [
+      {
+        "category": "✨ 新功能: PWA（可安裝 App）",
+        "items": []
+      }
+    ]
+  },
+  {
+    "date": "2026-08-14",
+    "version": "3c38609",
+    "title": "- `/api/route-shape` 由空 stub 改為 proxy 官方 hkbus route-waypoints（每日 sync CSDI 行車線）",
+    "changes": [
+      {
+        "category": "✨ 新功能: 真路線圖 polyline",
+        "items": [
+          "`worker/route-shape-map.js`：route → GTFS ID mapping",
+          "修復：dedupe consecutive duplicates（v047dbfd）"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-12",
+    "version": "49f44dc",
+    "title": "- Search.tsx UTF-8 mojibake 修復（PowerShell ANSI 讀寫搞壞 UTF-8，重寫咗）",
+    "changes": [
+      {
+        "category": "🐛 Fix: Search 頁亂碼",
+        "items": []
+      }
+    ]
+  },
+  {
+    "date": "2026-08-12",
+    "version": "5a7df9a",
+    "title": "- theme.ts：bg `#0a1628` / card `#0f1c30` / primary `#60b0f4` / teal `#4ecdc4`",
+    "changes": [
+      {
+        "category": "✨ UI: SeaCast 深藍主題",
+        "items": [
+          "RouteBadge 公司色保留"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-08-10",
+    "version": "155f6d4",
+    "title": "",
+    "changes": [
+      {
+        "category": "🐛 Fix: 路線詳情 / 車站頁 / auth 更新",
+        "items": []
+      }
+    ]
+  },
+  {
+    "date": "2026-08-05",
+    "version": "8d32175",
+    "title": "- Initial commit：Bus ETA app（star button、settings modal、configurable API URL）",
+    "changes": [
+      {
+        "category": "🚀 Web build for GitHub Pages + 初期版本",
+        "items": [
+          "支援 KMB + CTB、收藏、ETA、附近車站、地圖"
+        ]
+      }
+    ]
+  }
+]

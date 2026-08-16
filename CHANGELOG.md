@@ -5,6 +5,14 @@ https://bus-eta.rexmaopenclaw.workers.dev
 
 ---
 
+## 2026-08-16 — v2a0ef85d
+### 🐛 Fix: 轉乘查詢 — 石門轉車站唔見咗
+- **問題**：舊版要用戶揀方向，石門轉車站只喺 299X(去程)×43X(回程) 先出現，揀錯組合就見唔到
+- **改法**：搵共同站唔再理方向（合併晒 O/I），用戶唔使估；揀咗站先自動用正確方向查 ETA
+- Route picker 簡化：揀路線即完成，唔使再揀方向（去程/回程自動偵測）
+- 轉車站 chips 顯示方向提示（例如「去程 → 回程」）
+- 實測：299X + 43X → 6 個共同站，石門轉車站-濱景花園 (ST148) 一定出現
+
 ## 2026-08-16 — v34ccb73
 ### 🐛 Fix: 轉乘 icon 顯示問題
 - **empty state header 漏咗 ⇄ icon** — 之前 batch edit 失敗 atomic rollback，只加咗 main header；今次補返兩邊都有
