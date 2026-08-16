@@ -545,6 +545,11 @@ export default function HomeScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
+            onPress={() => router.push('/transfer')}>
+            <Ionicons name="swap-horizontal" size={18} color={theme.colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
             onPress={onRefresh}
             disabled={isRefreshing}>
             <Ionicons

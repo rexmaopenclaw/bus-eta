@@ -53,6 +53,14 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="transfer"
+          options={{
+            headerShown: true,
+            title: '轉乘查詢',
+            headerBackTitle: '返回',
+          }}
+        />
+        <Stack.Screen
           name="login"
           options={{
             headerShown: false,
