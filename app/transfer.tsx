@@ -184,6 +184,27 @@ function RoutePickerModal({
 }
 
 // ============================================================
+// 地理輔助：Haversine 距離（米）+ 站名正規化
+// ============================================================
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function normStopName(n: string): string {
+  return n.replace(/\s*\(.*?\)\s*/g, '').trim();
+}
+
+// 一站多柱：同名站相距少於 150 米 → 當同一轉車站
+const SAME_STOP_MAX_DIST_M = 150;
+
+// ============================================================
 // 單一 ETA 卡（路線 header + 班次）
 // ============================================================
 function TransferEtaCard({ sel, bound, etas }: { sel: RouteSel; bound: 'O' | 'I'; etas: any[] }) {
@@ -268,43 +289,46 @@ export default function TransferScreen() {
   // 搵共同轉車站（唔理方向，合併晒所有 bound）
   const commonStops = useMemo<CommonStop[]>(() => {
     if (!routeA || !routeB || filteredA.length === 0 || filteredB.length === 0) return [];
-    // 同公司：stop ID 匹配
-    if (routeA.company === routeB.company) {
-      const bById = new Map(filteredB.map((s) => [s.stop, s]));
-      return filteredA
-        .filter((a) => bById.has(a.stop))
-        .map((a) => {
-          const b = bById.get(a.stop)!;
-          return {
-            stopIdA: a.stop,
-            stopIdB: b.stop,
-            boundA: a.bound,
-            boundB: b.bound,
-            nameTc: a.name_tc,
-            nameEn: a.name_en,
-            seqA: a.seq,
-            seqB: b.seq,
-          };
-        });
+
+    const dist = (a: RouteStopDetail, b: RouteStopDetail) =>
+      haversineMeters(parseFloat(a.lat), parseFloat(a.long), parseFloat(b.lat), parseFloat(b.long));
+
+    // 同名（去括號）站名 → B 線所有柱
+    const bByName = new Map<string, RouteStopDetail[]>();
+    for (const s of filteredB) {
+      const key = normStopName(s.name_tc);
+      const list = bByName.get(key) ?? [];
+      list.push(s);
+      bByName.set(key, list);
     }
-    // 跨公司：站名去括號匹配
-    const norm = (n: string) => n.replace(/\s*\(.*?\)\s*/g, '').trim();
-    const bByName = new Map(filteredB.map((s) => [norm(s.name_tc), s]));
-    return filteredA
-      .filter((a) => bByName.has(norm(a.name_tc)))
-      .map((a) => {
-        const b = bByName.get(norm(a.name_tc))!;
-        return {
-          stopIdA: a.stop,
-          stopIdB: b.stop,
-          boundA: a.bound,
-          boundB: b.bound,
-          nameTc: a.name_tc,
-          nameEn: a.name_en,
-          seqA: a.seq,
-          seqB: b.seq,
-        };
+
+    // 對 A 線每個站，搵 B 線最啱嘅柱：
+    // 1. 同一 stop ID（真正同一柱）優先
+    // 2. 同名站 + 相距 < 150 米（一站多柱）
+    // 3. 每個 A 站最多 match 一次；B 柱可俾唔同 A 站用（唔同位置）
+    const result: CommonStop[] = [];
+    for (const a of filteredA) {
+      const candidates = (bByName.get(normStopName(a.name_tc)) ?? []).filter(
+        (b) => b.stop === a.stop || dist(a, b) < SAME_STOP_MAX_DIST_M,
+      );
+      if (candidates.length === 0) continue;
+      // 揀最近嗰條柱（同一 ID 距離 0，一定排最前）
+      candidates.sort((x, y) => dist(a, x) - dist(a, y));
+      const b = candidates[0];
+      // 防重複：同一 A 柱 + 同一 B 柱唔好出兩次
+      if (result.some((r) => r.stopIdA === a.stop && r.stopIdB === b.stop)) continue;
+      result.push({
+        stopIdA: a.stop,
+        stopIdB: b.stop,
+        boundA: a.bound,
+        boundB: b.bound,
+        nameTc: a.name_tc,
+        nameEn: a.name_en,
+        seqA: a.seq,
+        seqB: b.seq,
       });
+    }
+    return result;
   }, [routeA, routeB, filteredA, filteredB]);
 
   // 揀咗兩線 → 自動揀第一個共同站
