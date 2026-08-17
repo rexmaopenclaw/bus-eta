@@ -5,6 +5,15 @@ https://bus-eta.rexmaopenclaw.workers.dev
 
 ---
 
+## 2026-08-17 — v464be22
+### ✨ 新功能: 轉乘組合可儲存
+- 轉乘查詢頁 header 加書籤 icon：揀好兩條線 → 撳一下 save 組合（再撳取消）
+- 已儲存組合顯示喺路線揀選上面（橫向 chips，例如「42C ⇄ 92」），撳一下就 load 返兩條線
+- 每個 chip 有 ✕ 掣刪除；用 AsyncStorage 持久化（`busapp_transfer_combos`），跨 session 保留
+- 新 store：`src/store/transferFavs.ts`；type `TransferRouteSel` 加入 `src/types/index.ts`
+
+---
+
 ## 2026-08-17 — ve8753d4
 ### 🐛 Fix: 轉乘查詢 — 42C + 92 冇轉車站（一站多柱）
 - **問題**：KMB 轉車站係「一站多柱」，唔同路線停唔同柱（碧海樓 42C 停 WT342 / 92 停 WT341，相距 6m；紅萼樓同距 6m），舊 code 淨用 stop ID 精準匹配 → 停唔同柱就 match 唔到，顯示「冇共同車站」
