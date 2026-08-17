@@ -73,6 +73,16 @@ export type BusCompany = 'KMB' | 'CTB' | 'NWFB';
 /** 預設群組名 */
 export const DEFAULT_GROUP = '預設';
 
+/** 轉乘路線選擇（transfer.tsx 用） */
+export interface TransferRouteSel {
+  route: string;
+  bound: 'O' | 'I';
+  company: BusCompany;
+  serviceType: string;
+  origTc: string;
+  destTc: string;
+}
+
 /** 用戶收藏 */
 export interface FavoriteRoute {
   id: string; // `${company}-${route}-${bound}-${stopId}`

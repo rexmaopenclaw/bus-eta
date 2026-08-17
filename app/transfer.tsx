@@ -16,6 +16,7 @@ import {
   Keyboard,
   Modal,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,16 +30,10 @@ import { useStopETA } from '../src/hooks/useETA';
 import { useCTBStopETA } from '../src/hooks/useCTBETA';
 import { RouteBadge } from '../src/components/RouteBadge';
 import { parseETA, formatTime } from '../src/utils/time';
-import type { KMBRoute, RouteStopDetail, BusCompany } from '../src/types';
+import type { KMBRoute, RouteStopDetail, BusCompany, TransferRouteSel } from '../src/types';
+import { useTransferFavsStore, comboId } from '../src/store/transferFavs';
 
-interface RouteSel {
-  route: string;
-  bound: 'O' | 'I';
-  company: BusCompany;
-  serviceType: string;
-  origTc: string;
-  destTc: string;
-}
+interface RouteSel extends TransferRouteSel {}
 
 interface CommonStop {
   stopIdA: string;
@@ -266,6 +261,28 @@ export default function TransferScreen() {
   const [pickerFor, setPickerFor] = useState<'A' | 'B' | null>(null);
   const [selectedStop, setSelectedStop] = useState<CommonStop | null>(null);
 
+  // ---- 已儲存轉車組合 ----
+  const { combos, loaded, load, add, remove, isSaved } = useTransferFavsStore();
+  useEffect(() => {
+    load();
+  }, [load]);
+  const currentSaved = routeA && routeB ? isSaved(routeA, routeB) : false;
+
+  const handleSaveToggle = async () => {
+    if (!routeA || !routeB) return;
+    if (currentSaved) {
+      remove(comboId(routeA, routeB));
+    } else {
+      await add(routeA, routeB);
+    }
+  };
+
+  const loadCombo = (c: { routeA: RouteSel; routeB: RouteSel }) => {
+    setRouteA(c.routeA);
+    setRouteB(c.routeB);
+    setSelectedStop(null);
+  };
+
   // ---- 車站數據（top-level hooks，按公司 enabled）----
   const { data: kmbStopsA } = useKMBRouteStops(routeA && routeA.company === 'KMB' ? routeA.route : '');
   const { data: ctbStopsA } = useCTBRouteStops(routeA && routeA.company === 'CTB' ? routeA.route : '');
@@ -409,12 +426,24 @@ export default function TransferScreen() {
       <View style={[styles.headerBar, { borderBottomColor: theme.colors.border }]}>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>⇄ 轉乘查詢</Text>
         {routeA && routeB && (
-          <TouchableOpacity
-            style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
-            onPress={swapRoutes}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="swap-vertical" size={18} color={theme.colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerBtns}>
+            <TouchableOpacity
+              style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
+              onPress={handleSaveToggle}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons
+                name={currentSaved ? 'bookmark' : 'bookmark-outline'}
+                size={18}
+                color={currentSaved ? theme.colors.success : theme.colors.primary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.headerBtn, { backgroundColor: theme.colors.card }]}
+              onPress={swapRoutes}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="swap-vertical" size={18} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -423,6 +452,42 @@ export default function TransferScreen() {
         keyExtractor={(item) => item.key}
         renderItem={() => (
           <View>
+            {/* 已儲存轉車組合 */}
+            {loaded && combos.length > 0 && (
+              <View style={styles.savedSection}>
+                <Text style={[styles.savedTitle, { color: theme.colors.textSecondary }]}>
+                  已儲存組合
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.savedRow}>
+                  {combos.map((c) => (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[
+                        styles.savedChip,
+                        {
+                          backgroundColor: theme.colors.card,
+                          borderColor: theme.colors.border,
+                        },
+                      ]}
+                      onPress={() => loadCombo(c)}
+                      activeOpacity={0.7}>
+                      <Text style={[styles.savedChipText, { color: theme.colors.text }]}>
+                        {c.routeA.route} ⇄ {c.routeB.route}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => remove(c.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Ionicons name="close-circle" size={15} color={theme.colors.textSecondary} />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* 路線 A + B 選擇 */}
             <View style={styles.routeSelectRow}>
               <TouchableOpacity
@@ -577,6 +642,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: { fontSize: 20, fontWeight: '800' },
+  headerBtns: { flexDirection: 'row', gap: 8 },
   headerBtn: {
     width: 34,
     height: 34,
@@ -584,6 +650,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  savedSection: { paddingHorizontal: 14, paddingTop: 10 },
+  savedTitle: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  savedRow: { gap: 8, paddingRight: 14 },
+  savedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  savedChipText: { fontSize: 13, fontWeight: '600' },
   routeSelectRow: {
     flexDirection: 'row',
     gap: 10,
